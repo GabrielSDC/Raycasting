@@ -11,11 +11,14 @@ dt      = 0
 player  = pygame.Vector3(width / 2 + 4, height / 2 + 4, 0)
 block   = 70
 pixel   = 10
+font    = pygame.font.get_default_font()
+wr_font = pygame.font.SysFont(font, 28, True, False)
 
-black = (0,     0,   0)
+black = (  0,   0,   0)
 white = (255, 255, 255)
 grey  = (127, 127, 127)
 red   = (255,   0,   0)
+green = (  0,   0, 255)
 
 maps = [
     1, 1, 1, 1, 1, 1, 1,
@@ -32,6 +35,9 @@ def sin(deg: float) -> float:
 
 def cos(deg: float) -> float:
     return math.cos(math.radians(deg))
+
+def tan(deg: float) -> float:
+    return math.tan(math.radians(deg))
 
 def draw_square(x, y, color, size):
     points = [(x, y), (x + size, y), (x + size, y + size), (x, y + size)]
@@ -58,14 +64,30 @@ def handle_keydown(keys):
         player.z += 90 * dt
     
     if player.z < 0:
-        player.z = 359
-    elif player.z > 360:
-        player.z = 1
+        player.z += 360
+    elif player.z >= 360:
+        player.z -= 360
 
 def display_player():
-    pygame.draw.circle(screen, red, (player.x, player.y), pixel)
+    pygame.draw.circle(screen, red, (player.x, player.y), pixel / 2)
     vision = (player.x + cos(player.z) * 20, player.y + sin(player.z) * 20)
     pygame.draw.line(screen, red, (player.x, player.y), vision, 2) 
+
+def calc_distance(x1: int, y1: int, x2: int, y2: int) -> float:
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
+def display_arrays():
+    # vertical calculation
+    ix, iy = 0, 0
+    if player.z > 180 and player.z < 360:
+        iy = player.y % block
+        ix = iy / tan(player.z)
+        pygame.draw.line(screen, green, (player.x, player.y), (player.x - ix, player.y - iy))
+    elif player.z > 0 and player.z < 180:
+        iy = block - player.y % block
+        ix = iy * -tan(player.z + 90)
+        pygame.draw.line(screen, green, (player.x, player.y), (player.x + ix, player.y + iy))
+
 
 while running:
     for event in pygame.event.get():
@@ -77,7 +99,10 @@ while running:
     screen.fill(grey)
 
     display_map()
+    display_arrays()
     display_player()
+
+    screen.blit(wr_font.render(f"{player.x:.1f}, {player.y:.1f}, {player.z:.1f}", True, black), (0, 0))
 
     pygame.display.flip()
     dt = clock.tick(60) / 1000
