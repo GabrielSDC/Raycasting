@@ -1,4 +1,5 @@
 import pygame
+import math
 
 pygame.init()
 
@@ -7,7 +8,7 @@ screen  = pygame.display.set_mode(size)
 clock   = pygame.time.Clock()
 running = True
 dt      = 0
-player  = pygame.Vector2(width / 2 + 4, height / 2 + 4)
+player  = pygame.Vector3(width / 2 + 4, height / 2 + 4, 0)
 block   = 70
 pixel   = 10
 
@@ -26,6 +27,12 @@ maps = [
     1, 1, 1, 1, 1, 1, 1
 ]
 
+def sin(deg: float) -> float:
+    return math.sin(math.radians(deg))
+
+def cos(deg: float) -> float:
+    return math.cos(math.radians(deg))
+
 def draw_square(x, y, color, size):
     points = [(x, y), (x + size, y), (x + size, y + size), (x, y + size)]
     pygame.draw.polygon(screen, color, points, 0)
@@ -40,13 +47,25 @@ def display_map():
 
 def handle_keydown(keys):
     if keys[pygame.K_UP] or keys[pygame.K_w]:
-        player.y -= block * dt + 1
+        player.x += cos(player.z) * block * dt
+        player.y += sin(player.z) * block * dt
     if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-        player.y += block * dt + 1
+        player.x -= cos(player.z) * block * dt
+        player.y -= sin(player.z) * block * dt
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
-        player.x -= block * dt + 1
+        player.z -= 90 * dt 
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-        player.x += block * dt + 1
+        player.z += 90 * dt
+    
+    if player.z < 0:
+        player.z = 359
+    elif player.z > 360:
+        player.z = 1
+
+def display_player():
+    pygame.draw.circle(screen, red, (player.x, player.y), pixel)
+    vision = (player.x + cos(player.z) * 20, player.y + sin(player.z) * 20)
+    pygame.draw.line(screen, red, (player.x, player.y), vision, 2) 
 
 while running:
     for event in pygame.event.get():
@@ -58,7 +77,7 @@ while running:
     screen.fill(grey)
 
     display_map()
-    draw_square(player.x, player.y, red, pixel)
+    display_player()
 
     pygame.display.flip()
     dt = clock.tick(60) / 1000
