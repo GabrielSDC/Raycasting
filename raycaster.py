@@ -107,10 +107,12 @@ def display_arrays():
         ix = block - (player.x % block) if player.z == 0 else -(player.x % block)
         
         y_offset = 0
-        x_offset = block * -1 if player.z == 180 else 1
+        x_offset = block * (-1 if player.z == 180 else 1)
 
     x_ray += ix
     y_ray += iy
+    h_distance += calc_distance((player.x, player.y), (x_ray, y_ray))
+    dist_offset = calc_distance((x_ray, y_ray), (x_ray + x_offset, y_ray + y_offset))
 
     for i in range(7):
         mx, my = int(x_ray // block), int(y_ray // block)
@@ -120,8 +122,9 @@ def display_arrays():
         else:
             x_ray += x_offset
             y_ray += y_offset
+            h_distance += dist_offset
 
-    pygame.draw.line(screen, yellow, (player.x, player.y), (x_ray, y_ray), 7)
+    h_ray = (x_ray, y_ray)
 
     # vertical calculation
     v_distance = 0
@@ -147,10 +150,12 @@ def display_arrays():
         iy = block - (player.y % block) if player.z == 90 else -(player.z % block)
 
         x_offset = 0
-        y_offset = block * -1 if player.z == 270 else 1
+        y_offset = block * (-1 if player.z == 270 else 1)
         
     x_ray += ix
     y_ray += iy
+    v_distance += calc_distance((player.x, player.y), (x_ray, y_ray))
+    dist_offset = calc_distance((x_ray, y_ray), (x_ray + x_offset, y_ray + y_offset))
 
     for i in range(7):
         mx, my = int(x_ray // block), int(y_ray // block)
@@ -160,8 +165,14 @@ def display_arrays():
         else:
             x_ray += x_offset
             y_ray += y_offset
+            v_distance += dist_offset
 
-    pygame.draw.line(screen, green, (player.x, player.y), (x_ray, y_ray), 3)
+    v_ray = (x_ray, y_ray)
+
+    if h_distance < v_distance:
+        pygame.draw.line(screen, green, (player.x, player.y), h_ray, 3)
+    else:
+        pygame.draw.line(screen, green, (player.x, player.y), v_ray, 3)
 
 while running:
     for event in pygame.event.get():
