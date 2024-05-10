@@ -81,49 +81,87 @@ def calc_distance(pos1: tuple, pos2: tuple) -> float:
 
 def display_arrays():
     ix, iy = 0, 0
-
+    x_offset, y_offset = 0, 0
+    
     # horizontal calculation
     h_distance = 0
+    x_ray, y_ray = player.x, player.y
 
-    if player.z > 180 and player.z < 360:
-        iy = player.y % block
-        ix = iy / tan(player.z)
+    if player.z > 180 and player.z < 360: 
+        # looking up
+        iy = -(player.y % block) - 0.000001
+        ix = -iy / -tan(player.z)
         
-        h_iray = (player.x - ix, player.y - iy)
-    elif player.z > 0 and player.z < 180:
+        y_offset = -block
+        x_offset = -y_offset / -tan(player.z)
+    elif player.z > 0 and player.z < 180: 
+        # looking down
         iy = block - player.y % block
         ix = iy * -tan(player.z + 90)
         
-        h_iray = (player.x + ix, player.y + iy)
-    else:
-        h_iray = (width if player.z == 0 else 0, player.y)
+        y_offset = block
+        x_offset = y_offset * -tan(player.z + 90)
+    else: 
+        # looking straight forward or backwards
+        iy = 0
+        ix = block - (player.x % block) if player.z == 0 else -(player.x % block)
+        
+        y_offset = 0
+        x_offset = block * -1 if player.z == 180 else 1
 
-    h_distance = calc_distance((player.x, player.y), h_iray)
-    
+    x_ray += ix
+    y_ray += iy
+
+    for i in range(7):
+        mx, my = int(x_ray // block), int(y_ray // block)
+        position = my * 7 + mx
+        if position >= 0 and position < 49 and maps[position]:
+            break
+        else:
+            x_ray += x_offset
+            y_ray += y_offset
+
+    pygame.draw.line(screen, yellow, (player.x, player.y), (x_ray, y_ray), 7)
+
     # vertical calculation
     v_distance = 0
+    x_ray, y_ray = player.x, player.y
 
     if player.z > 90 and player.z < 270:
-        ix = player.x % block
+        # looking left
+        ix = -(player.x % block) - 0.000001
         iy = ix * tan(player.z)
 
-        v_iray = (player.x - ix, player.y - iy)
+        x_offset = -block
+        y_offset = x_offset * tan(player.z)
     elif player.z < 90 or player.z > 270:
-        ix = block - player.x % block
+        # looking right
+        ix = block - (player.x % block)
         iy = ix * tan(player.z)
 
-        v_iray = (player.x + ix, player.y + iy)    
+        x_offset = block
+        y_offset = x_offset * tan(player.z)
     else:
-        v_iray = (0 if player.z == 90 else height, player.x)
+        # looking straight upwards or downwards
+        ix = 0
+        iy = block - (player.y % block) if player.z == 90 else -(player.z % block)
 
-    v_distance = calc_distance((player.x, player.y), v_iray)
-    
-    if v_distance < h_distance:
-        pygame.draw.line(screen, yellow, (player.x, player.y), v_iray)
-    else:
-        pygame.draw.line(screen, yellow, (player.x, player.y), h_iray)
+        x_offset = 0
+        y_offset = block * -1 if player.z == 270 else 1
+        
+    x_ray += ix
+    y_ray += iy
 
-    return v_distance, h_distance
+    for i in range(7):
+        mx, my = int(x_ray // block), int(y_ray // block)
+        position = my * 7 + mx
+        if position >= 0 and position < 49 and maps[position]:
+            break
+        else:
+            x_ray += x_offset
+            y_ray += y_offset
+
+    pygame.draw.line(screen, green, (player.x, player.y), (x_ray, y_ray), 3)
 
 while running:
     for event in pygame.event.get():
@@ -135,11 +173,10 @@ while running:
     screen.fill(grey)
 
     display_map()
-    v, h = display_arrays()
+    display_arrays()
     display_player()
 
-    # screen.blit(wr_font.render(f"{player.x:.1f}, {player.y:.1f}, {player.z:.1f}", True, black), (0, 0))
-    screen.blit(wr_font.render(f"v: {v:.1f}, h: {h:.1f}", True, black), (0, 0))
+    screen.blit(wr_font.render(f"{player.x:.1f}, {player.y:.1f}, {player.z:.1f}", True, black), (0, 0))
 
     pygame.display.flip()
     dt = clock.tick(60) / 1000
