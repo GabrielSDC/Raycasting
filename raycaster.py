@@ -18,7 +18,7 @@ black  = (  0,   0,   0)
 white  = (255, 255, 255)
 grey   = (127, 127, 127)
 red    = (255,   0,   0)
-green  = (  0,   0, 255)
+blue   = (  0,   0, 255)
 yellow = (255, 255,   0)
 
 maps = [
@@ -72,7 +72,7 @@ def handle_keydown(keys):
 def display_player():
     pygame.draw.circle(screen, red, (player.x, player.y), pixel / 2)
     vision = (player.x + cos(player.z) * 20, player.y + sin(player.z) * 20)
-    pygame.draw.line(screen, red, (player.x, player.y), vision, 2) 
+    pygame.draw.line(screen, red, (player.x, player.y), vision, 3) 
 
 def calc_distance(pos1: tuple, pos2: tuple) -> float:
     x1, y1 = pos1
@@ -82,97 +82,106 @@ def calc_distance(pos1: tuple, pos2: tuple) -> float:
 def display_arrays():
     ix, iy = 0, 0
     x_offset, y_offset = 0, 0
-    
-    # horizontal calculation
-    h_distance = 0
-    x_ray, y_ray = player.x, player.y
+    a_ray = player.z - 30
+    if a_ray < 0:
+        a_ray += 360
 
-    if player.z > 180 and player.z < 360: 
-        # looking up
-        iy = -(player.y % block) - 0.000001
-        ix = -iy / -tan(player.z)
-        
-        y_offset = -block
-        x_offset = -y_offset / -tan(player.z)
-    elif player.z > 0 and player.z < 180: 
-        # looking down
-        iy = block - player.y % block
-        ix = iy * -tan(player.z + 90)
-        
-        y_offset = block
-        x_offset = y_offset * -tan(player.z + 90)
-    else: 
-        # looking straight forward or backwards
-        iy = 0
-        ix = block - (player.x % block) if player.z == 0 else -(player.x % block)
-        
-        y_offset = 0
-        x_offset = block * (-1 if player.z == 180 else 1)
+    for i in range(60):
+        # horizontal calculation
+        h_distance = 0
+        hx_ray, hy_ray = player.x, player.y
 
-    x_ray += ix
-    y_ray += iy
-    h_distance += calc_distance((player.x, player.y), (x_ray, y_ray))
-    dist_offset = calc_distance((x_ray, y_ray), (x_ray + x_offset, y_ray + y_offset))
+        if a_ray > 180 and a_ray < 360: 
+            # looking up
+            iy = -(player.y % block) - 0.000001
+            ix = -iy / -tan(a_ray)
+            
+            y_offset = -block
+            x_offset = -y_offset / -tan(a_ray)
+        elif a_ray > 0 and a_ray < 180: 
+            # looking down
+            iy = block - player.y % block
+            ix = iy * -tan(a_ray + 90)
+            
+            y_offset = block
+            x_offset = y_offset * -tan(a_ray + 90)
+        else: 
+            # looking straight forward or backwards
+            iy = 0
+            ix = block - (player.x % block) if a_ray == 0 else -(player.x % block)
+            
+            y_offset = 0
+            x_offset = block * (-1 if a_ray == 180 else 1)
 
-    for i in range(7):
-        mx, my = int(x_ray // block), int(y_ray // block)
-        position = my * 7 + mx
-        if position >= 0 and position < 49 and maps[position]:
-            break
+        hx_ray += ix
+        hy_ray += iy
+        h_distance += calc_distance((player.x, player.y), (hx_ray, hy_ray))
+        dist_offset = calc_distance((hx_ray, hy_ray), (hx_ray + x_offset, hy_ray + y_offset))
+
+        for i in range(7):
+            mx, my = int(hx_ray // block), int(hy_ray // block)
+            position = my * 7 + mx
+            if position >= 0 and position < 49 and maps[position]:
+                break
+            else:
+                hx_ray += x_offset
+                hy_ray += y_offset
+                h_distance += dist_offset
+
+        h_ray = (hx_ray, hy_ray)
+
+        # vertical calculation
+        v_distance = 0
+        vx_ray, vy_ray = player.x, player.y
+
+        if a_ray > 90 and a_ray < 270:
+            # looking left
+            ix = -(player.x % block) - 0.000001
+            iy = ix * tan(a_ray)
+
+            x_offset = -block
+            y_offset = x_offset * tan(a_ray)
+        elif a_ray < 90 or a_ray > 270:
+            # looking right
+            ix = block - (player.x % block)
+            iy = ix * tan(a_ray)
+
+            x_offset = block
+            y_offset = x_offset * tan(a_ray)
         else:
-            x_ray += x_offset
-            y_ray += y_offset
-            h_distance += dist_offset
+            # looking straight upwards or downwards
+            ix = 0
+            iy = block - (player.y % block) if a_ray == 90 else -(a_ray % block)
 
-    h_ray = (x_ray, y_ray)
+            x_offset = 0
+            y_offset = block * (-1 if a_ray == 270 else 1)
+            
+        vx_ray += ix
+        vy_ray += iy
+        v_distance += calc_distance((player.x, player.y), (vx_ray, vy_ray))
+        dist_offset = calc_distance((vx_ray, vy_ray), (vx_ray + x_offset, vy_ray + y_offset))
 
-    # vertical calculation
-    v_distance = 0
-    x_ray, y_ray = player.x, player.y
+        for i in range(7):
+            mx, my = int(vx_ray // block), int(vy_ray // block)
+            position = my * 7 + mx
+            if position >= 0 and position < 49 and maps[position]:
+                break
+            else:
+                vx_ray += x_offset
+                vy_ray += y_offset
+                v_distance += dist_offset
 
-    if player.z > 90 and player.z < 270:
-        # looking left
-        ix = -(player.x % block) - 0.000001
-        iy = ix * tan(player.z)
+        v_ray = (vx_ray, vy_ray)
 
-        x_offset = -block
-        y_offset = x_offset * tan(player.z)
-    elif player.z < 90 or player.z > 270:
-        # looking right
-        ix = block - (player.x % block)
-        iy = ix * tan(player.z)
-
-        x_offset = block
-        y_offset = x_offset * tan(player.z)
-    else:
-        # looking straight upwards or downwards
-        ix = 0
-        iy = block - (player.y % block) if player.z == 90 else -(player.z % block)
-
-        x_offset = 0
-        y_offset = block * (-1 if player.z == 270 else 1)
-        
-    x_ray += ix
-    y_ray += iy
-    v_distance += calc_distance((player.x, player.y), (x_ray, y_ray))
-    dist_offset = calc_distance((x_ray, y_ray), (x_ray + x_offset, y_ray + y_offset))
-
-    for i in range(7):
-        mx, my = int(x_ray // block), int(y_ray // block)
-        position = my * 7 + mx
-        if position >= 0 and position < 49 and maps[position]:
-            break
+        if h_distance < v_distance:
+            pygame.draw.line(screen, blue, (player.x, player.y), h_ray)
         else:
-            x_ray += x_offset
-            y_ray += y_offset
-            v_distance += dist_offset
+            pygame.draw.line(screen, blue, (player.x, player.y), v_ray)
+            
+        a_ray += 1
+        if a_ray >= 360:
+            a_ray -= 360
 
-    v_ray = (x_ray, y_ray)
-
-    if h_distance < v_distance:
-        pygame.draw.line(screen, green, (player.x, player.y), h_ray, 3)
-    else:
-        pygame.draw.line(screen, green, (player.x, player.y), v_ray, 3)
 
 while running:
     for event in pygame.event.get():
@@ -187,7 +196,7 @@ while running:
     display_arrays()
     display_player()
 
-    screen.blit(wr_font.render(f"{player.x:.1f}, {player.y:.1f}, {player.z:.1f}", True, black), (0, 0))
+    # screen.blit(wr_font.render(f"{player.x:.1f}, {player.y:.1f}, {player.z:.1f}", True, black), (0, 0))
 
     pygame.display.flip()
     dt = clock.tick(60) / 1000
