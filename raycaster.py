@@ -3,7 +3,7 @@ import math
 
 pygame.init()
 
-size    = width, height = 490, 490
+size    = width, height = 600, 400
 screen  = pygame.display.set_mode(size)
 clock   = pygame.time.Clock()
 running = True
@@ -14,21 +14,27 @@ pixel   = 10
 font    = pygame.font.get_default_font()
 wr_font = pygame.font.SysFont(font, 28, True, False)
 
-black  = (  0,   0,   0)
-white  = (255, 255, 255)
-grey   = (127, 127, 127)
-red    = (255,   0,   0)
-blue   = (  0,   0, 255)
-yellow = (255, 255,   0)
+black   = (  0,   0,   0)
+white   = (255, 255, 255)
+grey    = (127, 127, 127)
+red     = (255,   0,   0)
+blue    = (  0,   0, 255)
+green   = (  0, 255,   0)
+yellow  = (255, 255,   0)
+lt_grey = (211, 211, 211)
+dk_grey = (169, 169, 169)
 
+map_w, map_h = 9, 9
 maps = [
-    1, 1, 1, 1, 1, 1, 1,
-    1, 0, 1, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 1,
-    1, 0, 0, 0, 1, 0, 1,
-    1, 0, 0, 0, 0, 0, 1,
-    1, 1, 1, 1, 1, 1, 1
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 0, 1, 0, 0, 0, 0, 0, 1,
+    1, 0, 1, 0, 0, 0, 0, 0, 1,
+    1, 0, 1, 1, 0, 1, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 1, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 1, 0, 0, 1, 0, 0, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1
 ]
 
 def sin(deg: float) -> float:
@@ -40,17 +46,14 @@ def cos(deg: float) -> float:
 def tan(deg: float) -> float:
     return math.tan(math.radians(deg))
 
+def calc_distance(pos1: tuple, pos2: tuple) -> float:
+    x1, y1 = pos1
+    x2, y2 = pos2
+    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+
 def draw_square(x, y, color, size):
     points = [(x, y), (x + size, y), (x + size, y + size), (x, y + size)]
     pygame.draw.polygon(screen, color, points, 0)
-
-def display_map():
-    for y in range(0, height, block):
-        i = y // block
-        for x in range(0, width, block):
-            j = x // block
-            color = white if maps[i * 7 + j] else black
-            draw_square(x + 1, y + 1, color, block - 2)
 
 def handle_keydown(keys):
     if keys[pygame.K_UP] or keys[pygame.K_w]:
@@ -69,24 +72,39 @@ def handle_keydown(keys):
     elif player.z >= 360:
         player.z -= 360
 
+def display_map_2D():
+    for y in range(map_h):
+        for x in range(map_w):
+            color = white if maps[y * map_w + x] else black
+            draw_square(x * pixel, y * pixel, color, pixel)
+
 def display_player():
-    pygame.draw.circle(screen, red, (player.x, player.y), pixel / 2)
-    vision = (player.x + cos(player.z) * 20, player.y + sin(player.z) * 20)
-    pygame.draw.line(screen, red, (player.x, player.y), vision, 3) 
+    x, y = (player.x / block) * pixel, (player.y / block) * pixel
+    pygame.draw.circle(screen, red, (x, y), 2)
+    vision = (x + cos(player.z) * 5, y + sin(player.z) * 5)
+    pygame.draw.line(screen, red, (x, y), vision, 1) 
 
-def calc_distance(pos1: tuple, pos2: tuple) -> float:
-    x1, y1 = pos1
-    x2, y2 = pos2
-    return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
+def draw_screen(column: int, distance: float, color: tuple) -> None:
+    wall_height = (40 * width) / distance
+    ceiling = (height - wall_height) / 2
+    floor   = height - ceiling
+    for h in range(0, height, 10):
+        if h < ceiling:
+            draw_square(column * 10, h, blue, 10)
+        elif h > floor:
+            draw_square(column * 10, h, green, 10)
+        else:
 
-def display_arrays():
+            draw_square(column * 10, h, color, 10)
+
+def display_rays():
     ix, iy = 0, 0
     x_offset, y_offset = 0, 0
     a_ray = player.z - 30
     if a_ray < 0:
         a_ray += 360
 
-    for i in range(60):
+    for n in range(60):
         # horizontal calculation
         h_distance = 0
         hx_ray, hy_ray = player.x, player.y
@@ -118,10 +136,10 @@ def display_arrays():
         h_distance += calc_distance((player.x, player.y), (hx_ray, hy_ray))
         dist_offset = calc_distance((hx_ray, hy_ray), (hx_ray + x_offset, hy_ray + y_offset))
 
-        for i in range(7):
+        for i in range(map_w):
             mx, my = int(hx_ray // block), int(hy_ray // block)
-            position = my * 7 + mx
-            if position >= 0 and position < 49 and maps[position]:
+            position = my * map_w + mx
+            if position >= 0 and position < map_w * map_h and maps[position]:
                 break
             else:
                 hx_ray += x_offset
@@ -161,10 +179,10 @@ def display_arrays():
         v_distance += calc_distance((player.x, player.y), (vx_ray, vy_ray))
         dist_offset = calc_distance((vx_ray, vy_ray), (vx_ray + x_offset, vy_ray + y_offset))
 
-        for i in range(7):
+        for i in range(map_h):
             mx, my = int(vx_ray // block), int(vy_ray // block)
-            position = my * 7 + mx
-            if position >= 0 and position < 49 and maps[position]:
+            position = my * map_w + mx
+            if position >= 0 and position < map_w * map_h and maps[position]:
                 break
             else:
                 vx_ray += x_offset
@@ -173,10 +191,16 @@ def display_arrays():
 
         v_ray = (vx_ray, vy_ray)
 
+        diff_angle = player.z - a_ray
+        if diff_angle < 0:
+            diff_angle += 360
+        elif diff_angle >= 360:
+            diff_angle -= 360
+
         if h_distance < v_distance:
-            pygame.draw.line(screen, blue, (player.x, player.y), h_ray)
+            draw_screen(n, h_distance * cos(diff_angle), lt_grey)
         else:
-            pygame.draw.line(screen, blue, (player.x, player.y), v_ray)
+            draw_screen(n, v_distance * cos(diff_angle), dk_grey)
             
         a_ray += 1
         if a_ray >= 360:
@@ -190,13 +214,9 @@ while running:
 
     handle_keydown(pygame.key.get_pressed())
 
-    screen.fill(grey)
-
-    display_map()
-    display_arrays()
+    display_rays()
+    display_map_2D()
     display_player()
-
-    # screen.blit(wr_font.render(f"{player.x:.1f}, {player.y:.1f}, {player.z:.1f}", True, black), (0, 0))
 
     pygame.display.flip()
     dt = clock.tick(60) / 1000
