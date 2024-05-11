@@ -51,11 +51,11 @@ def calc_distance(pos1: tuple, pos2: tuple) -> float:
     x2, y2 = pos2
     return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
-def draw_square(x, y, color, size):
+def draw_square(x: float, y: float, color: tuple, size: float) -> None:
     points = [(x, y), (x + size, y), (x + size, y + size), (x, y + size)]
     pygame.draw.polygon(screen, color, points, 0)
 
-def handle_keydown(keys):
+def handle_keydown(keys: list[bool]) -> None:
     if keys[pygame.K_UP] or keys[pygame.K_w]:
         player.x += cos(player.z) * block * dt
         player.y += sin(player.z) * block * dt
@@ -72,25 +72,35 @@ def handle_keydown(keys):
     elif player.z >= 360:
         player.z -= 360
 
-def display_map_2D():
+def draw_brackground() -> None:
+    b = 255
+    for i in range(0, int(height / 2), 10):
+        pygame.draw.line(screen, (0, 0, b), (0, i), (width, i), 10)
+        b -= 5
+
+    g = 100
+    for i in range(int(height / 2), int(height), 10):
+        pygame.draw.line(screen, (0, g, 0), (0, i), (width, i), 10)
+        g += 5
+
+def display_mini_map() -> None:
     for y in range(map_h):
         for x in range(map_w):
             color = white if maps[y * map_w + x] else black
             draw_square(x * pixel, y * pixel, color, pixel)
 
-def display_player():
     x, y = (player.x / block) * pixel, (player.y / block) * pixel
     pygame.draw.circle(screen, red, (x, y), 2)
     vision = (x + cos(player.z) * 5, y + sin(player.z) * 5)
     pygame.draw.line(screen, red, (x, y), vision, 1) 
 
-def draw_screen(column: int, distance: float, color: tuple) -> None:
+def display_walls(column: int, distance: float, color: tuple) -> None:
     wall_height = (40 * width) / distance
     ceiling = (height - wall_height) / 2
     floor = height - ceiling
-    pygame.draw.line(screen, color, (column * 10, ceiling), (column * 10, floor), 10)
+    pygame.draw.line(screen, color, (column, ceiling), (column, floor), 10)
 
-def display_rays():
+def calculate_rays() -> None:
     ix, iy = 0, 0
     x_offset, y_offset = 0, 0
     a_ray = player.z - 30
@@ -191,14 +201,13 @@ def display_rays():
             diff_angle -= 360
 
         if h_distance < v_distance:
-            draw_screen(n, h_distance * cos(diff_angle), lt_grey)
+            display_walls(n * 10 + 5, h_distance * cos(diff_angle), lt_grey)
         else:
-            draw_screen(n, v_distance * cos(diff_angle), dk_grey)
+            display_walls(n * 10 + 5, v_distance * cos(diff_angle), dk_grey)
             
         a_ray += 1
         if a_ray >= 360:
             a_ray -= 360
-
 
 while running:
     for event in pygame.event.get():
@@ -207,11 +216,9 @@ while running:
 
     handle_keydown(pygame.key.get_pressed())
 
-    screen.fill(black)
-
-    display_rays()
-    display_map_2D()
-    display_player()
+    draw_brackground()
+    calculate_rays()
+    display_mini_map()
 
     pygame.display.flip()
     dt = clock.tick(60) / 1000
