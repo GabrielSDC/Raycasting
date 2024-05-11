@@ -87,15 +87,8 @@ def display_player():
 def draw_screen(column: int, distance: float, color: tuple) -> None:
     wall_height = (40 * width) / distance
     ceiling = (height - wall_height) / 2
-    floor   = height - ceiling
-    for h in range(0, height, 10):
-        if h < ceiling:
-            draw_square(column * 10, h, blue, 10)
-        elif h > floor:
-            draw_square(column * 10, h, green, 10)
-        else:
-
-            draw_square(column * 10, h, color, 10)
+    floor = height - ceiling
+    pygame.draw.line(screen, color, (column * 10, ceiling), (column * 10, floor), 10)
 
 def display_rays():
     ix, iy = 0, 0
@@ -213,6 +206,8 @@ while running:
             running = False
 
     handle_keydown(pygame.key.get_pressed())
+
+    screen.fill(black)
 
     display_rays()
     display_map_2D()
