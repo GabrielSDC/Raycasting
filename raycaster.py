@@ -8,11 +8,14 @@ screen  = pygame.display.set_mode(size)
 clock   = pygame.time.Clock()
 running = True
 dt      = 0
-player  = pygame.Vector3(width / 2 + 4, height / 2 + 4, 0)
-block   = 70
-pixel   = 10
-font    = pygame.font.get_default_font()
-wr_font = pygame.font.SysFont(font, 28, True, False)
+player  = pygame.Vector3(width / 2, height / 2, 0)
+FOV     = 60
+BLOCK   = 70
+PIXEL   = 10
+NUM_RAY = 120
+
+# font    = pygame.font.get_default_font()
+# wr_font = pygame.font.SysFont(font, 28, True, False)
 
 black   = (  0,   0,   0)
 white   = (255, 255, 255)
@@ -24,17 +27,18 @@ yellow  = (255, 255,   0)
 lt_grey = (211, 211, 211)
 dk_grey = (169, 169, 169)
 
-map_w, map_h = 9, 9
+map_w, map_h = 10, 10
 maps = [
-    1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 0, 1, 0, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 0, 0, 1,
-    1, 0, 1, 1, 0, 1, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 1, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 1, 0, 0, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 0, 0, 0, 0, 0, 1, 0, 0, 1,
+    1, 0, 1, 0, 0, 0, 1, 0, 1, 1,
+    1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 1, 1, 1, 1, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 1, 0, 1, 1, 1,
+    1, 0, 0, 0, 0, 1, 0, 0, 0, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 0, 1, 0, 0, 1, 0, 0, 1, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1, 1
 ]
 
 def sin(deg: float) -> float:
@@ -57,11 +61,11 @@ def draw_square(x: float, y: float, color: tuple, size: float) -> None:
 
 def handle_keydown(keys: list[bool]) -> None:
     if keys[pygame.K_UP] or keys[pygame.K_w]:
-        player.x += cos(player.z) * block * dt
-        player.y += sin(player.z) * block * dt
+        player.x += cos(player.z) * BLOCK * dt
+        player.y += sin(player.z) * BLOCK * dt
     if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-        player.x -= cos(player.z) * block * dt
-        player.y -= sin(player.z) * block * dt
+        player.x -= cos(player.z) * BLOCK * dt
+        player.y -= sin(player.z) * BLOCK * dt
     if keys[pygame.K_LEFT] or keys[pygame.K_a]:
         player.z -= 90 * dt 
     if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
@@ -79,7 +83,7 @@ def draw_brackground() -> None:
         b -= 5
 
     g = 100
-    for i in range(int(height / 2), int(height), 10):
+    for i in range(int(height / 2), int(height) + 1, 10):
         pygame.draw.line(screen, (0, g, 0), (0, i), (width, i), 10)
         g += 5
 
@@ -87,52 +91,52 @@ def display_mini_map() -> None:
     for y in range(map_h):
         for x in range(map_w):
             color = white if maps[y * map_w + x] else black
-            draw_square(x * pixel, y * pixel, color, pixel)
+            draw_square(x * PIXEL, y * PIXEL, color, PIXEL)
 
-    x, y = (player.x / block) * pixel, (player.y / block) * pixel
+    x, y = (player.x / BLOCK) * PIXEL, (player.y / BLOCK) * PIXEL
     pygame.draw.circle(screen, red, (x, y), 2)
     vision = (x + cos(player.z) * 5, y + sin(player.z) * 5)
     pygame.draw.line(screen, red, (x, y), vision, 1) 
 
-def display_walls(column: int, distance: float, color: tuple) -> None:
+def display_walls(column: int, distance: float, color: tuple, lwidth: float) -> None:
     wall_height = (40 * width) / distance
     ceiling = (height - wall_height) / 2
     floor = height - ceiling
-    pygame.draw.line(screen, color, (column, ceiling), (column, floor), 10)
+    pygame.draw.line(screen, color, (column, ceiling), (column, floor), int(lwidth))
 
-def calculate_rays() -> None:
+def cast_rays() -> None:
     ix, iy = 0, 0
     x_offset, y_offset = 0, 0
     a_ray = player.z - 30
     if a_ray < 0:
         a_ray += 360
 
-    for n in range(60):
+    for n in range(NUM_RAY):
         # horizontal calculation
         h_distance = 0
         hx_ray, hy_ray = player.x, player.y
 
         if a_ray > 180 and a_ray < 360: 
             # looking up
-            iy = -(player.y % block) - 0.000001
+            iy = -(player.y % BLOCK) - 0.000001
             ix = -iy / -tan(a_ray)
             
-            y_offset = -block
+            y_offset = -BLOCK
             x_offset = -y_offset / -tan(a_ray)
         elif a_ray > 0 and a_ray < 180: 
             # looking down
-            iy = block - player.y % block
+            iy = BLOCK - player.y % BLOCK
             ix = iy * -tan(a_ray + 90)
             
-            y_offset = block
+            y_offset = BLOCK
             x_offset = y_offset * -tan(a_ray + 90)
         else: 
             # looking straight forward or backwards
             iy = 0
-            ix = block - (player.x % block) if a_ray == 0 else -(player.x % block)
+            ix = BLOCK - (player.x % BLOCK) if a_ray == 0 else -(player.x % BLOCK)
             
             y_offset = 0
-            x_offset = block * (-1 if a_ray == 180 else 1)
+            x_offset = BLOCK * (-1 if a_ray == 180 else 1)
 
         hx_ray += ix
         hy_ray += iy
@@ -140,7 +144,7 @@ def calculate_rays() -> None:
         dist_offset = calc_distance((hx_ray, hy_ray), (hx_ray + x_offset, hy_ray + y_offset))
 
         for i in range(map_w):
-            mx, my = int(hx_ray // block), int(hy_ray // block)
+            mx, my = int(hx_ray // BLOCK), int(hy_ray // BLOCK)
             position = my * map_w + mx
             if position >= 0 and position < map_w * map_h and maps[position]:
                 break
@@ -149,33 +153,31 @@ def calculate_rays() -> None:
                 hy_ray += y_offset
                 h_distance += dist_offset
 
-        h_ray = (hx_ray, hy_ray)
-
         # vertical calculation
         v_distance = 0
         vx_ray, vy_ray = player.x, player.y
 
         if a_ray > 90 and a_ray < 270:
             # looking left
-            ix = -(player.x % block) - 0.000001
+            ix = -(player.x % BLOCK) - 0.000001
             iy = ix * tan(a_ray)
 
-            x_offset = -block
+            x_offset = -BLOCK
             y_offset = x_offset * tan(a_ray)
         elif a_ray < 90 or a_ray > 270:
             # looking right
-            ix = block - (player.x % block)
+            ix = BLOCK - (player.x % BLOCK)
             iy = ix * tan(a_ray)
 
-            x_offset = block
+            x_offset = BLOCK
             y_offset = x_offset * tan(a_ray)
         else:
             # looking straight upwards or downwards
             ix = 0
-            iy = block - (player.y % block) if a_ray == 90 else -(a_ray % block)
+            iy = BLOCK - (player.y % BLOCK) if a_ray == 90 else -(a_ray % BLOCK)
 
             x_offset = 0
-            y_offset = block * (-1 if a_ray == 270 else 1)
+            y_offset = BLOCK * (-1 if a_ray == 270 else 1)
             
         vx_ray += ix
         vy_ray += iy
@@ -183,7 +185,7 @@ def calculate_rays() -> None:
         dist_offset = calc_distance((vx_ray, vy_ray), (vx_ray + x_offset, vy_ray + y_offset))
 
         for i in range(map_h):
-            mx, my = int(vx_ray // block), int(vy_ray // block)
+            mx, my = int(vx_ray // BLOCK), int(vy_ray // BLOCK)
             position = my * map_w + mx
             if position >= 0 and position < map_w * map_h and maps[position]:
                 break
@@ -192,20 +194,20 @@ def calculate_rays() -> None:
                 vy_ray += y_offset
                 v_distance += dist_offset
 
-        v_ray = (vx_ray, vy_ray)
-
         diff_angle = player.z - a_ray
         if diff_angle < 0:
             diff_angle += 360
         elif diff_angle >= 360:
             diff_angle -= 360
 
+        lwidth = width / NUM_RAY
+        lpos = lwidth * (n + 1/2)
         if h_distance < v_distance:
-            display_walls(n * 10 + 5, h_distance * cos(diff_angle), lt_grey)
+            display_walls(lpos, h_distance * cos(diff_angle), lt_grey, lwidth)
         else:
-            display_walls(n * 10 + 5, v_distance * cos(diff_angle), dk_grey)
+            display_walls(lpos, v_distance * cos(diff_angle), dk_grey, lwidth)
             
-        a_ray += 1
+        a_ray += FOV / NUM_RAY
         if a_ray >= 360:
             a_ray -= 360
 
@@ -217,7 +219,7 @@ while running:
     handle_keydown(pygame.key.get_pressed())
 
     draw_brackground()
-    calculate_rays()
+    cast_rays()
     display_mini_map()
 
     pygame.display.flip()
