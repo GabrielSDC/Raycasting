@@ -8,14 +8,29 @@ screen  = pygame.display.set_mode(size)
 clock   = pygame.time.Clock()
 running = True
 dt      = 0
-player  = pygame.Vector3(width / 2, height / 2, 0)
 FOV     = 60
 BLOCK   = 70
 PIXEL   = 10
 NUM_RAY = 120
+start_x = 1.5 * BLOCK
+start_y = 1.5 * BLOCK
+player  = pygame.Vector3(start_x, start_y, 0)
 
 # font    = pygame.font.get_default_font()
 # wr_font = pygame.font.SysFont(font, 28, True, False)
+
+map_w, map_h = 9, 9
+maps = [
+    1, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 0, 0, 0, 0, 0, 0, 0, 1,
+    1, 1, 1, 1, 1, 1, 1, 0, 1,
+    1, 0, 0, 0, 1, 0, 0, 0, 1,
+    1, 1, 1, 0, 1, 0, 1, 0, 1,
+    1, 0, 0, 0, 1, 0, 1, 0, 1,
+    1, 0, 1, 1, 1, 0, 1, 0, 1,
+    1, 0, 0, 0, 0, 0, 1, 0, 1,
+    1, 1, 1, 1, 1, 1, 1, 1, 1
+]
 
 black   = (  0,   0,   0)
 white   = (255, 255, 255)
@@ -26,20 +41,6 @@ green   = (  0, 255,   0)
 yellow  = (255, 255,   0)
 lt_grey = (211, 211, 211)
 dk_grey = (169, 169, 169)
-
-map_w, map_h = 10, 10
-maps = [
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-    1, 0, 0, 0, 0, 0, 1, 0, 0, 1,
-    1, 0, 1, 0, 0, 0, 1, 0, 1, 1,
-    1, 0, 1, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 1, 1, 1, 1, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 1, 0, 1, 1, 1,
-    1, 0, 0, 0, 0, 1, 0, 0, 0, 1,
-    1, 0, 0, 0, 0, 0, 0, 0, 0, 1,
-    1, 0, 1, 0, 0, 1, 0, 0, 1, 1,
-    1, 1, 1, 1, 1, 1, 1, 1, 1, 1
-]
 
 def sin(deg: float) -> float:
     return math.sin(math.radians(deg))
@@ -102,7 +103,11 @@ def display_walls(column: int, distance: float, color: tuple, lwidth: float) -> 
     wall_height = (40 * width) / distance
     ceiling = (height - wall_height) / 2
     floor = height - ceiling
-    pygame.draw.line(screen, color, (column, ceiling), (column, floor), int(lwidth))
+    r, g, b = color
+    r = min(255 * r / distance, r)
+    g = min(255 * g / distance, g)
+    b = min(255 * b / distance, b)
+    pygame.draw.line(screen, (r, g, b), (column, ceiling), (column, floor), int(lwidth))
 
 def cast_rays() -> None:
     ix, iy = 0, 0
